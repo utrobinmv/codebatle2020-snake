@@ -246,7 +246,7 @@ class Pole(Board):
 
         print("Round mode = " + round.mode.__str__())
 
-        if round.time > 66:
+        if round.time > 29:
             # self.printShores()
             f = 1
 

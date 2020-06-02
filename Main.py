@@ -235,7 +235,7 @@ def main():
 
     #В конце не убежал от яростных змей
     
-        f = open("/home/joefox/data/nextcloud/Programming/competitions/codebattle-snakebattle-joefox/snakebattleclient/raunds/2020-06-02 13:14:02.206479.txt", "r")
+        f = open("/home/joefox/data/nextcloud/Programming/competitions/codebattle-snakebattle-joefox/snakebattleclient/raunds/2020-06-02 15:01:38.192138.txt", "r")
 
     #    f = open("/home/joefox/data/nextcloud/Programming/competitions/codebattle-snakebattle-joefox/snakebattleclient/raunds/2020-05-31 16:52:43.514781.txt", "r")
 
