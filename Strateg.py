@@ -229,7 +229,15 @@ class Pole(Board):
         
         debugInfo(156)
 
+        self.calculateShoresStarting()
+
         self.changeMode()
+
+        if round.time > 63:
+            f = 1
+
+        if round.time > 37:
+            f = 1
 
         self.calculateShores()
 
@@ -237,16 +245,17 @@ class Pole(Board):
 
         # self.printShores()
 
-        if round.time > 10:
+        print("Round mode = " + round.mode.__str__())
+
+        if round.time > 97:
             f = 1
 
-
         # # Шаг 1) Сначала нужно бежать за змейй если я злой
-        if self.snake.SnakeEvilStep > 0:
-            napravlenie = self.findOptimalElement(self.snake.SnakeEvilStep, 0)
+        # if self.snake.SnakeEvilStep > 0:
+        #     napravlenie = self.findOptimalElement(self.snake.SnakeEvilStep, 0)
 
-            if napravlenie > 0:
-                return napravlenie
+        #     if napravlenie > 0:
+        #         return napravlenie
 
         # Шаг 2) Расчитаем удаленность до каждой бутылки ярости
         ## Если нам добежать до неё быстрее но разница не велика, значит бежим туда
@@ -287,32 +296,58 @@ class Pole(Board):
         debugInfo(285)
 
         # Шаг 3) нет выхода попытка расчитать погрешность до стен
-        napravlenie = self.findStrategElement(Constants.NUM_CALC_MAX_STEP_ALL, 0)
+        # napravlenieStrateg, x, y = self.findStrategElement(Constants.NUM_CALC_MAX_STEP_ALL, 0)
+
+        # StrategShore = Constants.SHORE_WALL
+
+        # # Перепроверим ход на оптимальность
+        # if napravlenieStrateg > 0:
+        #     StrategShore = self.shoresGetPos(x, y)
+
+        # napravlenie = self.optimalHod(StrategShore, napravlenieStrateg)
+
+        # if napravlenieStrateg == napravlenie:
+        #     return napravlenie
+        napravlenie, x, y = self.findStrategElement(Constants.NUM_CALC_MAX_STEP_ALL, 0)
 
         if napravlenie > 0:
             return napravlenie
-        
-
+ 
         # Шаг 4) Если змея не в ярости расчитываем ходы
         napravlenie = self.findOptimalElement(max(Constants.NUM_CALC_MAX_STEP, self.snake.SnakeEvilStep), Constants.NUM_SHORE_FIRS_STEP)
 
         if napravlenie > 0:
             return napravlenie
 
+
+
         # Шаг 5) нет выхода попытка расчитать погрешность до стен
-        napravlenie = self.findStrategElement(Constants.NUM_CALC_MAX_STEP_ALL, Constants.SHORE_WALL + 1)
+        napravlenieStrateg, x, y = self.findStrategElement(Constants.NUM_CALC_MAX_STEP_ALL, Constants.SHORE_WALL + 1)
 
-        if napravlenie > 0:
-            return napravlenie
+        StrategShore = Constants.SHORE_WALL
 
-
+        if napravlenieStrateg > 0:
+            # StrategShore = self.shoresGetPos(x, y)
+            f = 1    
+        else:
+            #Некуда ходить
+            f = 1    
 
         #Некуда ходить
-        self.printShadow()
-        self.printShores()
+        # self.printShadow()
+        # self.printShores()
+        # self.print_board()
+        
         f = 1
 
-        return Mapping.SNAKE_UP
+        napravlenie = self.optimalHod(x, y, napravlenieStrateg)
+
+
+        if napravlenie == 0:
+            f = 1 #лучшей клетки нет, ходи куда хочешь
+
+        return napravlenie
+        # return 0
 
         # debugInfo(500)
 
@@ -331,7 +366,52 @@ class Pole(Board):
     
     #     napravlenie = self.calcShadowRecursive(self.snake, 100, -10)
 
+    def optimalHod(self, strateg_x, strateg_y, napravlenieStrateg):
+        
+        StrategShore = self.shoresGetPos(strateg_x, strateg_y)
+        element = self.elementsGetPos(strateg_x, strateg_y)
+        if element == Constants.STONE: #Уберем преимущество в очках у камня
+            if self.snake.SnakeEvilStep <= 0:
+                StrategShore = StrategShore - Constants.SHORE_STONE - Constants.SHORE_STONE
+
+
+        #Сюда добавить алгоритм хода в самую выгодную точку
+        x = self.snake.x
+        y = self.snake.y
+
+        maxShore = Constants.SHORE_NEVER
+        maxX = 0
+        maxY = 0
+        napravlenie = 0
+
+        for dx, dy in [(-1, 0), (+1, 0), (0, -1), (0, +1)]:
+            shore = self.shoresGetPos(x + dx, y + dy)
+            element = self.elementsGetPos(x + dx, y + dy)
+            wall = self.backgroundGetPos(x + dx, y + dy)
+
+            if element == Constants.STONE: #Уберем преимущество в очках у камня
+                if self.snake.SnakeEvilStep <= 0:
+                    shore = shore - Constants.SHORE_STONE - Constants.SHORE_STONE
+
+            if wall !=0:
+                shore = Constants.SHORE_NEVER
+            if shore > maxShore:
+                maxShore = shore
+                maxX = x + dx
+                maxY = y + dy
+
+        # OptimalShore = self.shoresGetPos(maxX, maxY)
+
+        if maxShore > StrategShore:
+            napravlenie = self.GoToNapravlenie(x, y, maxX, maxY)
+        else:
+            napravlenie = napravlenieStrateg
+
+        return napravlenie
+
+
     def changeMode(self):
+
 
         # if round.time < 30:
         round.mode = Mapping.MODE_NORMAL
@@ -340,18 +420,49 @@ class Pole(Board):
 
         debugInfo(319)
 
+        # Пока нет обработки режима MODE_FURYEVIL и MODE_FURY с точки зрения атаки, разницы нет
+        # Если ты бежишь за змей и тебе до неё столько клеток, сколько её длина то не стоит
+
         if self.snake.SnakeEvilStep > 1: # Я злой, если другие змеи поблизости активируем режим поиска злости и атаки
             self.calcShadow(self.snake.x, self.snake.y, self.snake.SnakeEvilStep, Constants.NUM_SHORE_FIRS_STEP, 0)
             for indexSnake in range(len(self.enemySnake)):
                 tmpSnake = self.enemySnake[indexSnake]
+                
+                min_step = 99999
+                min_index = 99999 
                 for indexCoordinates in range(len(tmpSnake.coordinates)):
                     enemysnake_x, enemysnake_y = tmpSnake.coordinates[indexCoordinates]
-                    if self.shadowGetPos(enemysnake_x, enemysnake_y) > 0:
-                        if tmpSnake.SnakeEvilStep > self.snake.SnakeEvilStep:
-                            round.mode = Mapping.MODE_FURYEVIL
-                        else:    
-                            round.mode = Mapping.MODE_FURYEVIL
-                        break #Так как режимы одинаковые, можно сразу выходить
+                    num_step = self.shadowGetPos(enemysnake_x, enemysnake_y)
+                    if num_step > 0:
+                        if num_step < min_step:
+                            min_step = num_step
+                            min_index = indexCoordinates
+
+                if min_step < 99999:
+                    if tmpSnake.SnakeEvilStep > self.snake.SnakeEvilStep:
+                        # self.printShadow()
+                        if self.snake.SnakeEvilStep < 2 and tmpSnake.Length < 3: #Самая худшая ситуация, коротыш погоня за хвостом
+                            round.mode = Mapping.MODE_FURY
+                            break
+                        else:
+                            # self.printShadow()
+                            if min_index >= len(tmpSnake.coordinates)-1: # Гонюсь за хвостом
+                                tmpSnake.goto_TAIL = 1
+                                round.mode = Mapping.MODE_FURY
+                            else:
+                                round.mode = Mapping.MODE_FURYEVIL
+                    else: 
+                        if min_index >= len(tmpSnake.coordinates)-1: # Гонюсь за хвостом
+                            round.mode = Mapping.MODE_FURY
+                            tmpSnake.goto_TAIL = 1
+                            break
+                        else:
+                            if num_step < 8 and self.snake.SnakeEvilStep - 2 >= num_step:
+                                # self.printShadow() #Интересны вот эти ситуации
+                                round.mode = Mapping.MODE_EVIL
+                            else:
+                                round.mode = Mapping.MODE_FURYEVIL
+                
 
 
         elif self.snake.SnakeEvil == 0: # Я не злой, если рядом злые змеи ищем елексир зла
@@ -362,7 +473,7 @@ class Pole(Board):
             for indexSnake in range(len(self.enemySnake)):
                 tmpSnake = self.enemySnake[indexSnake]
                 if tmpSnake.SnakeEvil == 1:
-                    self.calcShadow(tmpSnake.x, tmpSnake.y, tmpSnake.SnakeEvilStep, Constants.NUM_SHORE_FIRS_STEP, 0, 1)
+                    self.calcShadow(tmpSnake.x, tmpSnake.y, tmpSnake.SnakeEvilStep, Constants.NUM_SHORE_ENEMY_STEP, 0, 1)
                 for indexCoordinates in range(len(self.snake.coordinates)):
                     my_x, my_y = self.snake.coordinates[indexCoordinates]
                     if self.shadowGetPos(my_x, my_y) > 0:
@@ -377,7 +488,7 @@ class Pole(Board):
                 for indexSnake in range(len(self.enemySnake)):
                     tmpSnake = self.enemySnake[indexSnake]
                     # if tmpSnake.SnakeEvil == 0:
-                    self.calcShadow(tmpSnake.x, tmpSnake.y, Constants.FURY_PILL_STEP_NUM - 2, Constants.NUM_SHORE_FIRS_STEP, 0, 1)
+                    self.calcShadow(tmpSnake.x, tmpSnake.y, Constants.FURY_PILL_STEP_NUM - 2, Constants.NUM_SHORE_ENEMY_STEP, 0, 1)
                     for indexCoordinates in range(len(self.snake.coordinates)):
                         my_x, my_y = self.snake.coordinates[indexCoordinates]
                         if self.shadowGetPos(my_x, my_y) > 0:
@@ -388,12 +499,33 @@ class Pole(Board):
 
             debugInfo(367)
 
-            # Проверим есть ли змеи длиннее меня 
+            
             for indexSnake in range(len(self.enemySnake)):
                 tmpSnake = self.enemySnake[indexSnake]
                 if tmpSnake.Length > self.snake.Length:
-                    round.mode = Mapping.MODE_APPLE
+                    if round.time < 200:
+                        # Проверим есть ли яблоки по близости
+                        self.calcShadow(self.snake.x, self.snake.y, Constants.NUM_CALC_MAX_STEP, Constants.NUM_SHORE_FIRS_STEP, 0)
+                        for indexApple in range(len(self.apples)):
+                            x, y = self.apples[indexApple]
+                            if self.shadowGetPos(x, y) > 0:
+                                round.mode = Mapping.MODE_APPLE
+                                break
+                    else:    
+                        round.mode = Mapping.MODE_FURY_NORMAL
                     break
+
+        if round.mode == Mapping.MODE_FURY:
+            # Проверим есть ли бутылки ярости по близости
+            self.calcShadow(self.snake.x, self.snake.y, Constants.NUM_CALC_MAX_STEP, Constants.NUM_SHORE_FIRS_STEP, 0)
+            find = 0
+            for index in range(len(self.furyPill)):
+                x, y = self.furyPill[index]
+                if self.shadowGetPos(x, y) > 0:
+                    find = 1
+                    break
+            if find == 0:
+                round.mode = Mapping.MODE_FURY_NORMAL
 
 
         debugInfo(385)
@@ -430,7 +562,7 @@ class Pole(Board):
             # shadow = self.shadowGetPos(x, y)
             if shadow != 0:
                 shore = self.shoresGetPos(x, y)
-                if shore > Constants.NUM_SHORE_TRAP_STEP:
+                if shore > shoreBreak:
                     elements.append((x, y, shore, shore + (shadow * Constants.SHORE_HOD), shadow, numCalculate - shadow))
                     summShore = summShore + shore
 
@@ -477,6 +609,10 @@ class Pole(Board):
         points = self.calcShadow(self.snake.x, self.snake.y, Constants.NUM_CALC_MAX_STEP_ALL, shoreBreak, 1)
 
         self.timeFinish("Расчет тени: ")
+
+        if round.time == 119:
+            f = 1
+            # self.printShadow()
 
         # Поиск ближайших элементов на карте и запись в массивы
         for indexNum in range(len(points)):
@@ -565,7 +701,7 @@ class Pole(Board):
             if goto != None:
                 (x, y, napravlenie, Allshore) = goto
 
-                return napravlenie
+                return (napravlenie, x, y)
 
                 # elementsRez.append((x, y, napravlenie, Allshore, step))
 
@@ -592,7 +728,7 @@ class Pole(Board):
         #         # el = (x, y, step)
         #         # return el
 
-        return 0
+        return (0, 0, 0)
 
 
 
@@ -684,6 +820,26 @@ class Pole(Board):
     #     return 0    
 
 
+    def calculateShoresStarting(self):
+
+        # Своя змея
+        for index in range(len(self.snake.coordinates)): 
+            x, y = self.snake.coordinates[index]
+            shoreBody = 0
+            if index == 0: # Это голова
+                self.addShore(x, y, 0)
+            elif index == 1:
+                #Следующая ячейка после головы всегда стена, так как нельзя развернуться на 180 градусов
+                self.addShore(x, y, Constants.SHORE_WALL)
+            elif index < len(self.snake.coordinates)-1:
+                shoreBody = Constants.SHORE_SNAKE_BODY * (self.snake.Length - index)
+                self.addShore(x, y, shoreBody)
+            else:
+                self.addShore(x, y, Constants.SHORE_SNAKE_TAIL) #Пока про хвост рандомно, но на самом деле можно проверить есть ли перед головой яблоко тогда цена равна цене тела
+
+
+
+
     def calculateShores(self):
 
 
@@ -717,30 +873,42 @@ class Pole(Board):
             tmpSnake = self.enemySnake[indexSnake]
             #
             if ((tmpSnake.SnakeEvil == 0 and self.snake.SnakeEvil == 0) 
-              or (tmpSnake.SnakeEvil == 1 and self.snake.SnakeEvil == 1)): # Если змеи не в ярости, или обе в ярости
+              or (tmpSnake.SnakeEvil == 1 and self.snake.SnakeEvilStep > 0)): # Если змеи не в ярости, или обе в ярости
                 
                 # Сравниваем длины
                 if (self.snake.Length - tmpSnake.Length)  > 2: # Одна единица длины в запасе на яблоко по пути
-                    # Бьем только в голову
+
+                    if tmpSnake.goto_TAIL == 1:
+                        continue
+
+                    if self.snake.SnakeEvilStep > 0:
+                        # Нужно расчитать веса для тела вражеской змейки
+                        for index in range(1, len(tmpSnake.coordinates)): 
+                            x, y = tmpSnake.coordinates[index]
+                            # Но конечно нужно выделять не все клетки а только в пределах досигаемости ярости
+                            if self.shadowGetPos(x, y) > 0:
+                                self.setShore(x, y, Constants.SHORE_ENEMY_SNAKE_BODY)
+
+                    # Бьем только в голову, если моя змея не злая
                     # Здесь еще важно бежит змея в твоем направлении или нет если в твоем, то можно догнать. пока не знаю как
-                    self.addShore(tmpSnake.x, tmpSnake.y, Constants.SHORE_ENEMY_SNAKE_HEAD)
+                    self.setShore(tmpSnake.x, tmpSnake.y, Constants.SHORE_ENEMY_SNAKE_HEAD)
 
                     if tmpSnake.head == Mapping.SNAKE_UP:
-                        self.addShore(tmpSnake.x, tmpSnake.y-1, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
-                        self.addShore(tmpSnake.x-1, tmpSnake.y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
-                        self.addShore(tmpSnake.x+1, tmpSnake.y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(tmpSnake.x, tmpSnake.y-1, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
+                        self.setCheckShore(tmpSnake.x-1, tmpSnake.y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(tmpSnake.x+1, tmpSnake.y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
                     elif tmpSnake.head == Mapping.SNAKE_DOWN:
-                        self.addShore(tmpSnake.x, tmpSnake.y+1, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
-                        self.addShore(tmpSnake.x-1, tmpSnake.y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
-                        self.addShore(tmpSnake.x+1, tmpSnake.y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(tmpSnake.x, tmpSnake.y+1, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
+                        self.setCheckShore(tmpSnake.x-1, tmpSnake.y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(tmpSnake.x+1, tmpSnake.y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
                     elif tmpSnake.head == Mapping.SNAKE_LEFT:
-                        self.addShore(tmpSnake.x-1, tmpSnake.y, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
-                        self.addShore(tmpSnake.x, tmpSnake.y-1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
-                        self.addShore(tmpSnake.x, tmpSnake.y+1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(tmpSnake.x-1, tmpSnake.y, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
+                        self.setCheckShore(tmpSnake.x, tmpSnake.y-1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(tmpSnake.x, tmpSnake.y+1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
                     elif tmpSnake.head == Mapping.SNAKE_RIGHT:
-                        self.addShore(tmpSnake.x+1, tmpSnake.y, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
-                        self.addShore(tmpSnake.x, tmpSnake.y-1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
-                        self.addShore(tmpSnake.x, tmpSnake.y+1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(tmpSnake.x+1, tmpSnake.y, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
+                        self.setCheckShore(tmpSnake.x, tmpSnake.y-1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(tmpSnake.x, tmpSnake.y+1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
 
                     # Здесь нужно еще добавить две\три точки в направлении рядом с головой
                 else: # У нас нет преимущества, нужно держать голову подальше
@@ -756,57 +924,46 @@ class Pole(Board):
                             x, y = tmpSnake.coordinates[index]
                             self.addShore(x, y, Constants.SHORE_ENEMY_SHORE_EVIL)
 
-            if tmpSnake.SnakeEvil == 1 and self.snake.SnakeEvil == 0: # Если вражеская, то нужно держаться подальше
+            elif tmpSnake.SnakeEvil == 1 and self.snake.SnakeEvil == 0: # Если вражеская, то нужно держаться подальше
                 # Нужно расчитать веса для тела вражеской змейки
                 for index in range(len(tmpSnake.coordinates)): 
                     x, y = tmpSnake.coordinates[index]
                     # Но конечно нужно выделять не все клетки а только в пределах досигаемости ярости
                     self.addShore(x, y, Constants.SHORE_ENEMY_SHORE_EVIL) #но это уже ранее сделано
             
-            if tmpSnake.SnakeEvil == 0 and self.snake.SnakeEvil == 1: # Если моя, то кусать за все
+            elif tmpSnake.SnakeEvil == 0 and self.snake.SnakeEvilStep > 0: # Если моя, то кусать за все
+
+                if tmpSnake.goto_TAIL == 1:
+                    continue
+
                 # Нужно расчитать веса для тела вражеской змейки
                 for index in range(len(tmpSnake.coordinates)): 
                     x, y = tmpSnake.coordinates[index]
                     # Но конечно нужно выделять не все клетки а только в пределах досигаемости ярости
                     if self.shadowGetPos(x, y) > 0:
-                        self.addShore(x, y, Constants.SHORE_ENEMY_SNAKE_BODY)
+                        self.setShore(x, y, Constants.SHORE_ENEMY_SNAKE_BODY)
 
                 x = tmpSnake.x
                 y = tmpSnake.y
                 if self.shadowGetPos(x, y) > 0:
                     if tmpSnake.head == Mapping.SNAKE_UP:
-                        self.addShore(x, y-1, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
-                        self.addShore(x-1, y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
-                        self.addShore(x+1, y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(x, y-1, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
+                        self.setCheckShore(x-1, y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(x+1, y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
                     elif tmpSnake.head == Mapping.SNAKE_DOWN:
-                        self.addShore(x, y+1, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
-                        self.addShore(x-1, y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
-                        self.addShore(x+1, y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(x, y+1, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
+                        self.setCheckShore(x-1, y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(x+1, y, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
                     elif tmpSnake.head == Mapping.SNAKE_LEFT:
-                        self.addShore(x-1, y, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
-                        self.addShore(x, y-1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
-                        self.addShore(x, y+1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(x-1, y, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
+                        self.setCheckShore(x, y-1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(x, y+1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
                     elif tmpSnake.head == Mapping.SNAKE_RIGHT:
-                        self.addShore(x+1, y, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
-                        self.addShore(x, y-1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
-                        self.addShore(x, y+1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(x+1, y, Constants.SHORE_ENEMY_SNAKE_HEAD) #Точка перед змеей
+                        self.setCheckShore(x, y-1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
+                        self.setCheckShore(x, y+1, Constants.SHORE_ENEMY_SNAKE_HEAD // 2) #Точка вокруг
 
         debugInfo(765)
-
-        # Своя змея
-        for index in range(len(self.snake.coordinates)): 
-            x, y = self.snake.coordinates[index]
-            shoreBody = 0
-            if index == 0: # Это голова
-                self.addShore(x, y, 0)
-            elif index == 1:
-                #Следующая ячейка после головы всегда стена, так как нельзя развернуться на 180 градусов
-                self.addShore(x, y, Constants.SHORE_WALL)
-            elif index < len(self.snake.coordinates)-1:
-                shoreBody = Constants.SHORE_SNAKE_BODY * (self.snake.Length - index)
-                self.addShore(x, y, shoreBody)
-            else:
-                self.addShore(x, y, Constants.SHORE_SNAKE_TAIL) #Пока про хвост рандомно, но на самом деле можно проверить есть ли перед головой яблоко тогда цена равна цене тела
 
         # Закрасим тень, чтобы понять, как далеко до каждой ячейки
         self.calcShadow(self.snake.x, self.snake.y, Constants.NUM_CALC_MAX_STEP_ALL, Constants.NUM_SHORE_FIRS_STEP)
@@ -831,16 +988,25 @@ class Pole(Board):
                 if ((self.snake.SnakeEvil == 1 and step <= self.snake.SnakeEvilStep) or self.snake.Length >= Constants.SNAKE_LEN_GOTO_STONE): 
                     if self.chechXYtrap(x, y):
                         self.addShore(x, y, Constants.SHORE_STONE)
+        # else:
+        #     for index in range(len(self.stones)): 
+        #         x, y = self.stones[index]
+        #         step = self.shoresGetPos(x, y)
+        #         # Расставляем очки только для камней поблизости
+        #         if ((self.snake.SnakeEvil == 1 and step <= self.snake.SnakeEvilStep) or self.snake.Length >= Constants.SNAKE_LEN_GOTO_STONE): 
+        #             if self.chechXYtrap(x, y):
+        #                 self.addShore(x, y, Constants.SHORE_STONE)
+
 
         debugInfo(420)
 
-        if round.mode != Mapping.MODE_APPLE:
+        if round.mode == Mapping.MODE_NORMAL or round.mode == Mapping.MODE_FURY or round.mode == Mapping.MODE_FURY_NORMAL or round.mode == Mapping.MODE_FURYEVIL:
             # Бутылка ярости
             for index in range(len(self.furyPill)): 
                 x, y = self.furyPill[index]
                 if self.chechXYtrap(x, y):
                     self.addShore(x, y, Constants.SHORE_FURY)
-                    if round.mode == Mapping.MODE_FURY or round.mode == Mapping.MODE_FURY_NORMAL:
+                    if round.mode == Mapping.MODE_FURY or round.mode == Mapping.MODE_FURY_NORMAL or round.mode == Mapping.MODE_FURYEVIL:
                         self.addShore(x, y, Constants.SHORE_FURY)
 
         debugInfo(427)
@@ -884,6 +1050,14 @@ class Pole(Board):
 
     def addShore(self, x, y, shore):
         self.shoresSetPos(x, y, self.shoresGetPos(x, y) + shore)
+
+    def setShore(self, x, y, shore):
+        self.shoresSetPos(x, y, shore)
+
+    def setCheckShore(self, x, y, shore):
+        element = self.elementsGetPos(x, y) #Если какие то посторонние предметы не заполняем ячейки
+        if element == 0 or element == Constants.APPLE or element == Constants.GOLD or element == Constants.FURY_PILL:
+            self.shoresSetPos(x, y, shore)
 
     def calculateNearFury(self):
 
@@ -966,7 +1140,7 @@ class Pole(Board):
         hod = 1
 
         self.shadowInit()
-        self.shadowSetPos(x_fury, x_fury, hod)
+        self.shadowSetPos(x_fury, y_fury, hod)
 
         debugInfo(598)
 
@@ -981,7 +1155,8 @@ class Pole(Board):
                     shadow = self.shadowGetPos(x + dx, y + dy)
                     shore = self.shoresGetPos(x + dx, y + dy)
                     element = self.elementsGetPos(x + dx, y + dy)
-                    if element == Constants.STONE and (snake_evilstep == 0 or snake_length < Constants.SNAKE_LEN_GOTO_STONE): # Пропускаем камни если не злой или длна малая
+
+                    if element == Constants.STONE and (snake_evilstep == 0 and snake_length < Constants.SNAKE_LEN_GOTO_STONE) and shoreBreak >= Constants.NUM_SHORE_FIRS_STEP: # Пропускаем камни если не злой или длна малая
                         propus = 1
                     elif wall == 0 and shadow == 0 and shore >= shoreBreak: #Пока преграда только стена и отрицательные очки
                         self.shadowSetPos(x + dx, y + dy, hod)
@@ -1059,7 +1234,7 @@ class Pole(Board):
         if clearShadow == 1:
             self.shadowInit()
 
-        self.shadowSetPos(x_fury, x_fury, hod)
+        self.shadowSetPos(x_fury, y_fury, hod)
 
         debugInfo(598)
 
@@ -1097,7 +1272,7 @@ class Pole(Board):
 
     def calculateShoresEnemyEvilSnakes(self, enemy_snake, x_start, y_start, evil_step):
         evilShoresNum = 20 # Даже если ходов больше, обсчитывать будет не больше 20
-        evilShores = [-20,-18,-16,-14,-12,-10,-8,-6,-4,-2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
+        evilShores = [-30,-18,-16,-14,-12,-10,-8,-6,-4,-2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
 
         debugInfo(1057)
 
@@ -1107,10 +1282,11 @@ class Pole(Board):
         elif enemy_snake.SnakeEvil == 1 and self.snake.SnakeEvilStep > evil_step:
             return #Если змея злая, но у меня больше злости не убегать
         elif enemy_snake.SnakeEvil == 0 and self.snake.SnakeEvilStep > 0:
+            return
             # Если я злой, а противник нет, повернуть все в лучшую сторону
             evil_step = max(self.snake.SnakeEvilStep, 2)           
             evil_step = min(evil_step, 5)           
-            evilShores = [20,5,4,3,2]
+            evilShores = [10,5,4,3,2]
         else:
             f = 1 #Штатный режим, когда змея злая    
 
@@ -1133,7 +1309,7 @@ class Pole(Board):
         # self.shoresSetPos(x_start, y_start, evilShores[hod-1])
         self.shadowInit()
         self.shadowSetPos(x_start, y_start, hod)
-        self.shoresSetPos(x_start, y_start, self.shoresGetPos(y_start, y_start) + evilShores[0])
+        self.shoresSetPos(x_start, y_start, self.shoresGetPos(x_start, y_start) + evilShores[0])
 
         debugInfo(641)
 
@@ -1600,6 +1776,9 @@ class Pole(Board):
             elSnake = self.get_element_at(self._strpos2pt(self._xy2strpos(self.snake.x + i, self.snake.y + j)))
             if elSnake == Element('FURY_PILL'):
                 self.snake.nearFury.append((self.snake.x + i, self.snake.y + j))
+
+        if round.time > 40:
+            f = 1
 
         # Написать функцию класса, которая подсчитывает длину змеи на карте
         self.snake.Length = lengthSnakeMy # Длина моей змеи

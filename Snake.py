@@ -8,6 +8,7 @@ class Snake:
         self.slep = 0 # Змея спит или умерла
         self.Length = 0 #Длина змеи
         self.nearFury = []
+        self.goto_TAIL = 0
         self.nextXY = []
         self.coordinates = [] #Координаты змеи от головы к хвосту
 

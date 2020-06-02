@@ -92,6 +92,8 @@ def turn(gcb: Board):
     except ValueError:
         print('Ошибка3')
 
+    firstAction = SnakeAction.RIGHT
+
     if pole.snake.slep == 0 or not(pole.snake.x == 0 and pole.snake.y == 0):
         # try:
             napravlenie = pole.fill()
@@ -150,6 +152,42 @@ def turn(gcb: Board):
 
     if isinstance(firstAction, SnakeAction):
         nextAction = firstAction
+
+        max = len(pole.snake.coordinates)
+        if max > 1:
+            x, y = pole.snake.coordinates[max - 1]
+            el_tail = pole.get_element_at(pole._strpos2pt(pole._xy2strpos(x, y)))
+            stone = 0
+            if el_tail == Element('TAIL_END_DOWN'):
+                dx = 0
+                dy = +1
+                stone = 1
+            elif el_tail == Element('TAIL_END_LEFT'):
+                dx = -1
+                dy = 0
+                stone = 1
+            elif el_tail == Element('TAIL_END_UP'):
+                dx = 0
+                dy = -1
+                stone = 1
+            elif el_tail == Element('TAIL_END_RIGHT'):
+                dx = +1
+                dy = 0
+                stone = 1
+            if stone == 1:
+                el = pole.get_element_at(pole._strpos2pt(pole._xy2strpos(x + dx, y + dy)))
+                if el == Element('ENEMY_HEAD_DOWN') or el == Element('ENEMY_HEAD_LEFT')  or el == Element('ENEMY_HEAD_RIGHT')  or el == Element('ENEMY_HEAD_UP'):
+                    # Бросим камень
+                    if nextAction == SnakeAction.RIGHT:
+                        nextAction == SnakeAction.ACT_RIGHT
+                    elif nextAction == SnakeAction.LEFT:
+                        nextAction == SnakeAction.ACT_LEFT
+                    elif nextAction == SnakeAction.UP:
+                        nextAction == SnakeAction.ACT_UP
+                    elif nextAction == SnakeAction.DOWN:
+                        nextAction == SnakeAction.ACT_DOWN
+
+
     else: 
         nextAction = SnakeAction.RIGHT
 
@@ -197,7 +235,7 @@ def main():
 
     #В конце не убежал от яростных змей
     
-        f = open("/home/joefox/data/nextcloud/Programming/competitions/codebattle-snakebattle-joefox/snakebattleclient/raunds/2020-05-31 19:37:18.537628.txt", "r")
+        f = open("/home/joefox/Documents/2020-06-01-19-00/codebattle-snakebattle-joefox/snakebattleclient/raunds/2020-06-01 19:15:13.546956.txt", "r")
 
     #    f = open("/home/joefox/data/nextcloud/Programming/competitions/codebattle-snakebattle-joefox/snakebattleclient/raunds/2020-05-31 16:52:43.514781.txt", "r")
 
@@ -222,7 +260,7 @@ def main():
 
     else:    
         gcb = GameClient(
-            "http://codebattle-pro-2020s1.westeurope.cloudapp.azure.com/codenjoy-contest/board/player/maj4vj9an68jvojyjmud?code=2739922753473236519&gameName=snakebattle")
+            "http://codebattle-pro-2020s1.westeurope.cloudapp.azure.com/codenjoy-contest/board/player/tdakkyau1nxihybx7jrk?code=8348432615981863614&gameName=snakebattle")
         gcb.run(turn)
 
 if __name__ == '__main__':
