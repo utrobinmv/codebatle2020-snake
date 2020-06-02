@@ -236,18 +236,18 @@ class Pole(Board):
         if round.time > 63:
             f = 1
 
-        if round.time > 37:
+        if round.time > 66:
             f = 1
 
         self.calculateShores()
 
         debugInfo(160)
 
-        # self.printShores()
 
         print("Round mode = " + round.mode.__str__())
 
-        if round.time > 97:
+        if round.time > 66:
+            # self.printShores()
             f = 1
 
         # # Шаг 1) Сначала нужно бежать за змейй если я злой
@@ -465,14 +465,14 @@ class Pole(Board):
                 
 
 
-        elif self.snake.SnakeEvil == 0: # Я не злой, если рядом злые змеи ищем елексир зла
+        elif self.snake.SnakeEvilStep <= 0: # Я не злой, если рядом злые змеи ищем елексир зла
 
             debugInfo(337)
 
             self.shadowInit()
             for indexSnake in range(len(self.enemySnake)):
                 tmpSnake = self.enemySnake[indexSnake]
-                if tmpSnake.SnakeEvil == 1:
+                if tmpSnake.SnakeEvilStep > 1:
                     self.calcShadow(tmpSnake.x, tmpSnake.y, tmpSnake.SnakeEvilStep, Constants.NUM_SHORE_ENEMY_STEP, 0, 1)
                 for indexCoordinates in range(len(self.snake.coordinates)):
                     my_x, my_y = self.snake.coordinates[indexCoordinates]
@@ -863,8 +863,7 @@ class Pole(Board):
         f = 1
 
         # Чужие змеи расчет очков
-        if self.snake.SnakeEvil == 1:
-            self.calcShadow(self.snake.x, self.snake.y, self.snake.SnakeEvilStep, Constants.NUM_SHORE_FIRS_STEP)
+        self.calcShadow(self.snake.x, self.snake.y, max(Constants.NUM_CALC_MAX_STEP, self.snake.SnakeEvilStep), Constants.NUM_SHORE_FIRS_STEP)
         # else:
         #     self.calcShadow(self.snake.x, self.snake.y, Constants.FURY_PILL_STEP_NUM, Constants.NUM_SHORE_FIRS_STEP)
 
@@ -874,8 +873,8 @@ class Pole(Board):
         for indexSnake in range(len(self.enemySnake)): 
             tmpSnake = self.enemySnake[indexSnake]
             #
-            if ((tmpSnake.SnakeEvil == 0 and self.snake.SnakeEvil == 0) 
-              or (tmpSnake.SnakeEvil == 1 and self.snake.SnakeEvilStep > 0)): # Если змеи не в ярости, или обе в ярости
+            if ((tmpSnake.SnakeEvilStep <= 0 and self.snake.SnakeEvilStep <= 0) 
+              or (tmpSnake.SnakeEvilStep > 0 and self.snake.SnakeEvilStep > 0)): # Если змеи не в ярости, или обе в ярости
                 
                 # Сравниваем длины
                 if (self.snake.Length - tmpSnake.Length)  > 2: # Одна единица длины в запасе на яблоко по пути
@@ -883,13 +882,16 @@ class Pole(Board):
                     if tmpSnake.goto_TAIL == 1:
                         continue
 
-                    if self.snake.SnakeEvilStep > 0:
-                        # Нужно расчитать веса для тела вражеской змейки
-                        for index in range(1, len(tmpSnake.coordinates)): 
-                            x, y = tmpSnake.coordinates[index]
-                            # Но конечно нужно выделять не все клетки а только в пределах досигаемости ярости
-                            if self.shadowGetPos(x, y) > 0:
+                    
+                    # Нужно расчитать веса для тела вражеской змейки
+                    for index in range(1, len(tmpSnake.coordinates)): 
+                        x, y = tmpSnake.coordinates[index]
+                        # Но конечно нужно выделять не все клетки а только в пределах досигаемости ярости
+                        if self.shadowGetPos(x, y) > 0:
+                            if self.snake.SnakeEvilStep > 0:
                                 self.setShore(x, y, Constants.SHORE_ENEMY_SNAKE_BODY)
+                            else:
+                                self.addShore(x, y, Constants.SHORE_ENEMY_SHORE_EVIL)    
 
                     # Бьем только в голову, если моя змея не злая
                     # Здесь еще важно бежит змея в твоем направлении или нет если в твоем, то можно догнать. пока не знаю как
@@ -917,7 +919,7 @@ class Pole(Board):
                     self.addShore(tmpSnake.x, tmpSnake.y, Constants.SHORE_ENEMY_SHORE_EVIL)
                     # Здесь нужно еще добавить две\три точки в направлении рядом с головой
                 
-                    if tmpSnake.SnakeEvil == 1 and self.snake.SnakeEvilStep > 0: # Если обе злые значит можно нападать на тело за головой
+                    if tmpSnake.SnakeEvilStep > 0 and self.snake.SnakeEvilStep > 0: # Если обе злые значит можно нападать на тело за головой
                         for index in range(1, len(tmpSnake.coordinates)): 
                             x, y = tmpSnake.coordinates[index]
                             self.setShore(x, y, Constants.SHORE_ENEMY_SNAKE_BODY)
@@ -926,14 +928,14 @@ class Pole(Board):
                             x, y = tmpSnake.coordinates[index]
                             self.addShore(x, y, Constants.SHORE_ENEMY_SHORE_EVIL)
 
-            elif tmpSnake.SnakeEvil == 1 and self.snake.SnakeEvil == 0: # Если вражеская, то нужно держаться подальше
+            elif tmpSnake.SnakeEvilStep > 0 and self.snake.SnakeEvilStep <= 0: # Если вражеская, то нужно держаться подальше
                 # Нужно расчитать веса для тела вражеской змейки
                 for index in range(len(tmpSnake.coordinates)): 
                     x, y = tmpSnake.coordinates[index]
                     # Но конечно нужно выделять не все клетки а только в пределах досигаемости ярости
                     self.addShore(x, y, Constants.SHORE_ENEMY_SHORE_EVIL) #но это уже ранее сделано
             
-            elif tmpSnake.SnakeEvil == 0 and self.snake.SnakeEvilStep > 0: # Если моя, то кусать за все
+            elif tmpSnake.SnakeEvilStep <= 0 and self.snake.SnakeEvilStep > 0: # Если моя, то кусать за все
 
                 if tmpSnake.goto_TAIL == 1:
                     continue
@@ -1279,11 +1281,11 @@ class Pole(Board):
         debugInfo(1057)
 
 
-        if enemy_snake.SnakeEvil == 0 and self.snake.SnakeEvilStep < 2 and enemy_snake.Length - 2 > self.snake.Length:
+        if enemy_snake.SnakeEvilStep <= 0 and self.snake.SnakeEvilStep < 2 and enemy_snake.Length - 2 > self.snake.Length:
             evil_step = 3 #Если змея не злая, и её длина больше, все равно нужно боятся
-        elif enemy_snake.SnakeEvil == 1 and self.snake.SnakeEvilStep > evil_step:
+        elif enemy_snake.SnakeEvilStep > 0 and self.snake.SnakeEvilStep > evil_step:
             return #Если змея злая, но у меня больше злости не убегать
-        elif enemy_snake.SnakeEvil == 0 and self.snake.SnakeEvilStep > 0:
+        elif enemy_snake.SnakeEvilStep <= 0 and self.snake.SnakeEvilStep > 0:
             return
             # Если я злой, а противник нет, повернуть все в лучшую сторону
             evil_step = max(self.snake.SnakeEvilStep, 2)           
@@ -1697,7 +1699,7 @@ class Pole(Board):
         # Получить для других змей остаток ходов ярости с прошлого хода
         for indexSnake in range(len(self.enemySnake)): 
             tmpSnake = self.enemySnake[indexSnake]
-            if tmpSnake.SnakeEvil == 1: # Если змея в ярости
+            if tmpSnake.SnakeEvilStep > 0: # Если змея в ярости
                 for indexOldSnake in range(len(round.enemySnakes)):
                     tmpOldSnake = round.enemySnakes[indexOldSnake]
                     if tmpOldSnake.SnakeEvil == 1: # Если змея в прошлом ходу была в ярости
