@@ -1702,7 +1702,7 @@ class Pole(Board):
         # Получить для других змей остаток ходов ярости с прошлого хода
         for indexSnake in range(len(self.enemySnake)): 
             tmpSnake = self.enemySnake[indexSnake]
-            if tmpSnake.SnakeEvilStep > 0: # Если змея в ярости
+            if tmpSnake.SnakeEvil == 1: # Если змея в ярости
                 for indexOldSnake in range(len(round.enemySnakes)):
                     tmpOldSnake = round.enemySnakes[indexOldSnake]
                     if tmpOldSnake.SnakeEvil == 1: # Если змея в прошлом ходу была в ярости
