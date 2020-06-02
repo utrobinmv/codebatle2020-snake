@@ -832,10 +832,11 @@ class Pole(Board):
                 self.addShore(x, y, 0)
             elif index == 1:
                 #Следующая ячейка после головы всегда стена, так как нельзя развернуться на 180 градусов
-                self.addShore(x, y, Constants.SHORE_WALL)
+                self.setShore(x, y, Constants.SHORE_WALL)
             elif index < len(self.snake.coordinates)-1:
-                shoreBody = Constants.SHORE_SNAKE_BODY * (self.snake.Length - index)
-                self.addShore(x, y, shoreBody)
+                # shoreBody = Constants.SHORE_SNAKE_BODY * (self.snake.Length - index)
+                shoreBody = Constants.SHORE_WALL + 1
+                self.setShore(x, y, shoreBody)
             else:
                 self.addShore(x, y, Constants.SHORE_SNAKE_TAIL) #Пока про хвост рандомно, но на самом деле можно проверить есть ли перед головой яблоко тогда цена равна цене тела
 
