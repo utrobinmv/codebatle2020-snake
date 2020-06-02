@@ -477,7 +477,8 @@ class Pole(Board):
                 for indexCoordinates in range(len(self.snake.coordinates)):
                     my_x, my_y = self.snake.coordinates[indexCoordinates]
                     if self.shadowGetPos(my_x, my_y) > 0:
-                       round.mode = Mapping.MODE_FURY  
+                    #    round.mode = Mapping.MODE_FURY  
+                       round.mode = Mapping.MODE_FURYEVIL  
                        break
 
             if round.mode < Mapping.MODE_FURY_NORMAL:
@@ -509,7 +510,8 @@ class Pole(Board):
                         for indexApple in range(len(self.apples)):
                             x, y = self.apples[indexApple]
                             if self.shadowGetPos(x, y) > 0:
-                                round.mode = Mapping.MODE_APPLE
+                                # round.mode = Mapping.MODE_APPLE
+                                round.mode = Mapping.MODE_NORMAL
                                 break
                     else:    
                         round.mode = Mapping.MODE_FURY_NORMAL
@@ -915,10 +917,10 @@ class Pole(Board):
                     self.addShore(tmpSnake.x, tmpSnake.y, Constants.SHORE_ENEMY_SHORE_EVIL)
                     # Здесь нужно еще добавить две\три точки в направлении рядом с головой
                 
-                    if tmpSnake.SnakeEvil == 1 and self.snake.SnakeEvil == 1: # м
+                    if tmpSnake.SnakeEvil == 1 and self.snake.SnakeEvilStep > 0: # Если обе злые значит можно нападать на тело за головой
                         for index in range(1, len(tmpSnake.coordinates)): 
                             x, y = tmpSnake.coordinates[index]
-                            self.addShore(x, y, Constants.SHORE_ENEMY_SHORE_EVIL)
+                            self.setShore(x, y, Constants.SHORE_ENEMY_SNAKE_BODY)
                     else:
                         for index in range(1, len(tmpSnake.coordinates)): 
                             x, y = tmpSnake.coordinates[index]
