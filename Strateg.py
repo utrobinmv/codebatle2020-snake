@@ -921,6 +921,8 @@ class Pole(Board):
                     # Здесь нужно еще добавить две\три точки в направлении рядом с головой
                 
                     if tmpSnake.SnakeEvilStep > 0 and self.snake.SnakeEvilStep > 0: # Если обе злые значит можно нападать на тело за головой
+                        if tmpSnake.goto_TAIL == 1:
+                            continue
                         for index in range(1, len(tmpSnake.coordinates)): 
                             x, y = tmpSnake.coordinates[index]
                             self.setShore(x, y, Constants.SHORE_ENEMY_SNAKE_BODY)
