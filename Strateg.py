@@ -864,7 +864,12 @@ class Pole(Board):
         f = 1
 
         # Чужие змеи расчет очков
-        self.calcShadow(self.snake.x, self.snake.y, max(Constants.NUM_CALC_MAX_STEP, self.snake.SnakeEvilStep), Constants.NUM_SHORE_FIRS_STEP)
+        # self.calcShadow(self.snake.x, self.snake.y, max(Constants.NUM_CALC_MAX_STEP, self.snake.SnakeEvilStep), Constants.NUM_SHORE_FIRS_STEP)
+        if self.snake.SnakeEvilStep > 0:
+            self.calcShadow(self.snake.x, self.snake.y, self.snake.SnakeEvilStep, Constants.NUM_SHORE_FIRS_STEP)        
+        else:
+            self.calcShadow(self.snake.x, self.snake.y, Constants.NUM_CALC_MAX_STEP, Constants.NUM_SHORE_FIRS_STEP)
+
         # else:
         #     self.calcShadow(self.snake.x, self.snake.y, Constants.FURY_PILL_STEP_NUM, Constants.NUM_SHORE_FIRS_STEP)
 
